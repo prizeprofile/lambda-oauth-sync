@@ -16,6 +16,7 @@
     "deploy:prod": "claudia update --config claudia-prod.json"
   },
   "dependencies": {
+    "aws-sdk": "^2.320.0",
     "oauth": "~0.9.13"
   },
   "devDependencies": {

@@ -1,6 +1,7 @@
 const OAuth = require('oauth').OAuth
+const fetchUserData = require('./src/fetchUserData')
 
-exports.handler = (_event, _context, callback) => {
+exports.handler = (event, _, callback) => {
   // Prepare auth object.
   const oauth = new OAuth(
     'https://api.twitter.com/oauth/request_token',
@@ -13,11 +14,23 @@ exports.handler = (_event, _context, callback) => {
   )
 
   return new Promise((resolve, reject) => {
-    // Getting request token from Twitter.
-    oauth.getOAuthRequestToken((error, token, token_secret) => {
-      error ? reject(error) : resolve({ token, token_secret })
-    })
+    try { resolve(JSON.parse(event.body)) }
+    catch (_) { reject({ status: 400, error: 'UnprocessableContent' }) }
   })
+    .then(({ token, token_secret, verifier }) =>
+      new Promise((resolve, reject) => {
+        // Exchanging request token for access token.
+        oauth.getOAuthAccessToken(token, token_secret, verifier,
+        (error, access_token, access_token_secret) => {
+          error
+            ? reject({ status: 401, error: 'InvalidTokens' })
+            : resolve({ access_token, access_token_secret })
+        })
+    }))
+    // Makes a request to Twitter for user info.
+    .then(() => fetchUserData(oauth, tokens))
+    // Creates/updates DynamoDB user and returns a unique token.
+    .then(findOrNewUser)
     .then(res => callback(null, {
       statusCode: 200,
       headers: {
@@ -25,14 +38,11 @@ exports.handler = (_event, _context, callback) => {
       },
       body: JSON.stringify(res)
     }))
-    .catch(error => callback(null, {
-      statusCode: 503,
+    .catch(({ error, status }) => callback(null, {
+      statusCode: status,
       headers: {
         'Access-Control-Allow-Origin' : '*'
       },
-      body: JSON.stringify({
-        status: 503,
-        error: 'Service temporarily unavailable.'
-      })
+      body: JSON.stringify({ status, error })
     }))
 }
