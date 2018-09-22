@@ -1,5 +1,6 @@
 const OAuth = require('oauth').OAuth
 const fetchUserData = require('./src/fetchUserData')
+const findOrNewUser = require('./src/findOrNewUser')
 
 exports.handler = (event, _, callback) => {
   // Prepare auth object.
@@ -14,11 +15,19 @@ exports.handler = (event, _, callback) => {
   )
 
   return new Promise((resolve, reject) => {
-    try { resolve(JSON.parse(event.body)) }
-    catch (_) { reject({ status: 400, error: 'UnprocessableContent' }) }
+    try {
+      let t = JSON.parse(event.body)
+
+      // Checks if all three tokens exist.
+      t.token.length && t.token_secret.length && t.verifier.length && resolve(t)
+
+      throw new Error()
+    } catch (_) {
+      reject({ status: 422, error: 'MissingParameters' })
+    }
   })
-    .then(({ token, token_secret, verifier }) =>
-      new Promise((resolve, reject) => {
+    .then(({ token, token_secret, verifier }) => {
+      return new Promise((resolve, reject) => {
         // Exchanging request token for access token.
         oauth.getOAuthAccessToken(token, token_secret, verifier,
         (error, access_token, access_token_secret) => {
@@ -26,9 +35,9 @@ exports.handler = (event, _, callback) => {
             ? reject({ status: 401, error: 'InvalidTokens' })
             : resolve({ access_token, access_token_secret })
         })
-    }))
+    })})
     // Makes a request to Twitter for user info.
-    .then(() => fetchUserData(oauth, tokens))
+    .then(tokens => fetchUserData(oauth, tokens))
     // Creates/updates DynamoDB user and returns a unique token.
     .then(findOrNewUser)
     .then(res => callback(null, {
