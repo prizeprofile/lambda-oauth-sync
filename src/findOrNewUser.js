@@ -10,19 +10,19 @@ const crypto = require('crypto')
  *
  * @return {Promise<any>}
  */
-module.exports = ({ id, user }) => {
+module.exports = ({ user, tokens }) => {
   // Generates a random user token.
   const token = crypto
     .createHash('sha256')
-    .update(`${user.twitter_id}-${uuid()}-${Date.now()}`)
+    .update(`${user.id}-${uuid()}-${Date.now()}`)
     .digest('hex')
 
-  user.pp_token = token
+  tokens.pp_token = token
 
   const item = {
     TableName: process.env.DDB_TABLE,
     Key: {
-     user_id: { S: id }
+     user_id: { S: user.id }
     },
     ReturnValues: 'ALL_NEW',
     ExpressionAttributeNames: {},
@@ -31,11 +31,13 @@ module.exports = ({ id, user }) => {
 
   const exp = []
 
-  // Adds all aquired attributes to the update query.
-  for (let attribute in user) {
-    let value = user[attribute]
+  const attributes = Object.assign({}, tokens, user, { id: undefined })
 
-    if (! value) {
+  // Adds all aquired attributes to the update query.
+  for (let attribute in attributes) {
+    let value = attributes[attribute]
+
+    if (value === undefined) {
       continue
     }
 
@@ -45,12 +47,12 @@ module.exports = ({ id, user }) => {
     item.ExpressionAttributeValues[`:_${attribute}`] = { S: value }
   }
 
-  item.UpdateExpression = 'SET ' + exp.join(',')
+  item.UpdateExpression = 'SET ' + exp.join(', ')
 
   return new Promise((resolve, reject) => {
     ddb.updateItem(item, (err, _) => err
       ? reject({ status: 503, error: 'ServiceUnavailable' })
-      : resolve({ id: user.twitter_id, pp_token: token })
+      : resolve({ token, user })
     )
   })
 }
