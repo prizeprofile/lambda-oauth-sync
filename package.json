@@ -10,13 +10,15 @@
     "url": "https://github.com/prizeprofile/lambda-oauth-sync"
   },
   "scripts": {
-    "create:stage": "claudia create --name stage-oauth-sync --region eu-west-1 --handler index.handler --role arn:aws:iam::365488455739:role/lambda_basic_execution --config claudia-stage.json",
-    "create:prod": "claudia create --name prod-oauth-sync --region eu-west-1 --handler index.handler --role arn:aws:iam::365488455739:role/lambda_basic_execution --config claudia-prod.json",
+    "create:stage": "claudia create --name stage-oauth-sync --region eu-west-1 --handler index.handler --role arn:aws:iam::365488455739:role/lambda_dynamo_db --config claudia-stage.json",
+    "create:prod": "claudia create --name prod-oauth-sync --region eu-west-1 --handler index.handler --role arn:aws:iam::365488455739:role/lambda_dynamo_db --config claudia-prod.json",
     "deploy:stage": "claudia update --config claudia-stage.json",
     "deploy:prod": "claudia update --config claudia-prod.json"
   },
   "dependencies": {
-    "oauth": "~0.9.13"
+    "aws-sdk": "^2.320.0",
+    "oauth": "~0.9.13",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "claudia": "^5.1.1"
