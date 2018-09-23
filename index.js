@@ -47,7 +47,7 @@ exports.handler = (event, _, callback) => {
       },
       body: JSON.stringify(res)
     }))
-    .catch(({ error, status }) => callback(null, {
+    .catch(({ status, error }) => callback(null, {
       statusCode: status,
       headers: {
         'Access-Control-Allow-Origin' : '*'
