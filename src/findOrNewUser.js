@@ -52,7 +52,10 @@ module.exports = ({ user, tokens }) => {
   return new Promise((resolve, reject) => {
     ddb.updateItem(item, (err, _) => err
       ? reject({ status: 503, error: 'ServiceUnavailable' })
-      : resolve({ token, user })
+      : resolve({
+        token: `${user.id},${token}`,
+        user
+      })
     )
   })
 }
